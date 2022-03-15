@@ -1,0 +1,24 @@
+[package]
+name = "tohou-clone"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+yew = "0.19.3"
+wasm-bindgen = "0.2"
+gloo-render = "0.1"
+gloo = "0.6.0"
+log = "0.4.6"
+wasm-logger = "0.2.0"
+rand = { version = "0.6.5", features = ["wasm-bindgen"] }
+js-sys = "0.3.56"
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+  'Document',
+  'HtmlCanvasElement',
+  'CanvasRenderingContext2d',
+]
