@@ -2,28 +2,29 @@ use wasm_bindgen::JsValue;
 use web_sys::CanvasRenderingContext2d;
 
 use crate::{
-    enemy::Enemy,
+    enemies::{trajectories::CircleTrajectory, Enemy, premade::enemy_1},
     geometry::{Circle, Vector},
 };
 
 #[derive(Clone, PartialEq)]
-pub enum EntityType {
-    Player,
+pub enum BulletType {
+    PlayerSniper,
+    PlayerHeavy,
     Enemy,
 }
 
 #[derive(Clone)]
 pub struct Bullet {
-    pub owner: EntityType,
+    pub typ: BulletType,
     pub hitbox: Circle,
     pub speed: Vector,
     marked_for_delete: bool,
 }
 
 impl Bullet {
-    pub fn new(owner: EntityType, hitbox: Circle, speed: Vector) -> Self {
+    pub fn new(typ: BulletType, hitbox: Circle, speed: Vector) -> Self {
         Self {
-            owner,
+            typ,
             hitbox,
             speed,
             marked_for_delete: false,
@@ -50,14 +51,22 @@ impl World {
         Self {
             player: Circle::new(size.x / 2.0, size.y / 6.0 * 5.0, 10.0),
             enemy: vec![
-                Enemy::new(Box::new(|t| {
-                    let t = t * 3.0;
-                    Vector::new(300.0, 300.0) + Vector::new(t.sin(), t.cos()) * 200.0
-                })),
-                Enemy::new(Box::new(|t| {
-                    let t = t * 3.0 + 3.14159265;
-                    Vector::new(300.0, 300.0) + Vector::new(t.sin(), t.cos()) * 200.0
-                })),
+                enemy_1(0.0, 2.0, Vector::new(100.0, 300.0)),
+                enemy_1(std::f64::consts::PI, 2.0, Vector::new(500.0, 300.0)),
+                // Box::new(CircleTrajectory::new(
+                //     Circle::new(300.0, 300.0, 200.0),
+                //     0.0,
+                //     3.0,
+                //     30.0,
+                //     0.1,
+                // )),
+                // Box::new(CircleTrajectory::new(
+                //     Circle::new(300.0, 300.0, 200.0),
+                //     std::f64::consts::PI,
+                //     3.0,
+                //     30.0,
+                //     0.1,
+                // )),
             ],
             bullets: vec![],
             size,
@@ -73,34 +82,41 @@ impl World {
         self.time += delta;
 
         for bullet in self.bullets.iter_mut() {
-            if self.player.collides_with(&bullet.hitbox) && bullet.owner == EntityType::Enemy {
+            if self.player.collides_with(&bullet.hitbox) && bullet.typ == BulletType::Enemy {
                 return TickResult::Loose;
             }
         }
 
         for enemy in self.enemy.iter_mut() {
-            enemy.tick(self.time, delta, &mut self.bullets);
+            enemy.tick(delta, &mut self.bullets);
         }
 
         for e in self.enemy.iter_mut() {
             for bullet in self.bullets.iter_mut() {
-                if e.hitbox.collides_with(&bullet.hitbox) && bullet.owner == EntityType::Player {
-                    e.get_hit();
-                    bullet.marked_for_delete = true;
+                if e.hitbox().collides_with(&bullet.hitbox) {
+                    if bullet.typ == BulletType::PlayerSniper {
+                        e.hit(3.0);
+                        bullet.marked_for_delete = true;
+                    } else if bullet.typ == BulletType::PlayerHeavy {
+                        bullet.marked_for_delete = true;
+                    }
                 }
             }
         }
 
-        // for i in 0..self.bullets.len() {
-        //     let bi = self.bullets[i].clone();
-        //     for j in (i + 1)..self.bullets.len() {
-        //         let bj = self.bullets[j].clone();
-        //         if bi.hitbox.collides_with(&bj.hitbox) && bi.owner != bj.owner {
-        //             self.bullets[i].marked_for_delete = true;
-        //             self.bullets[j].marked_for_delete = true;
-        //         }
-        //     }
-        // }
+        for i in 0..self.bullets.len() {
+            let bi = self.bullets[i].clone();
+            for j in (i + 1)..self.bullets.len() {
+                let bj = self.bullets[j].clone();
+                if bi.typ == BulletType::PlayerSniper || bj.typ == BulletType::PlayerSniper {
+                    continue;
+                }
+                if bi.hitbox.collides_with(&bj.hitbox) && bi.typ != bj.typ {
+                    self.bullets[i].marked_for_delete = true;
+                    self.bullets[j].marked_for_delete = true;
+                }
+            }
+        }
 
         for bullet in self.bullets.iter_mut() {
             bullet.hitbox.coord += bullet.speed * delta;
@@ -113,7 +129,7 @@ impl World {
 
         self.enemy.retain(|it| it.is_alive());
 
-        if self.enemy.len() == 0 {
+        if self.enemy.is_empty() {
             return TickResult::Win;
         }
 
@@ -121,13 +137,18 @@ impl World {
     }
 
     pub fn new_bullet(coord: Vector, speed: Vector) -> Bullet {
-        Bullet::new(EntityType::Enemy, Circle::new(coord.x, coord.y, 5.0), speed)
+        Bullet::new(BulletType::Enemy, Circle::new(coord.x, coord.y, 5.0), speed)
     }
 
-    pub fn shoot(&mut self, speed: Vector) {
+    pub fn shoot(&mut self, speed: Vector, typ: BulletType) {
+        let r = match &typ {
+            BulletType::PlayerSniper => 5.0,
+            BulletType::PlayerHeavy => 10.0,
+            BulletType::Enemy => 5.0,
+        };
         self.bullets.push(Bullet::new(
-            EntityType::Player,
-            Circle::new(self.player.coord.x, self.player.coord.y, 5.0),
+            typ,
+            Circle::new(self.player.coord.x, self.player.coord.y, r),
             speed,
         ));
     }
@@ -141,12 +162,13 @@ impl World {
 
         draw_circle(context, &self.player, "green");
         for enemy in self.enemy.iter() {
-            draw_circle(context, &enemy.hitbox, "red");
+            draw_circle(context, enemy.hitbox(), "red");
         }
         for bullet in self.bullets.iter() {
-            let color = match &bullet.owner {
-                EntityType::Player => "blue",
-                _ => "yellow",
+            let color = match &bullet.typ {
+                BulletType::PlayerSniper => "blue",
+                BulletType::PlayerHeavy => "cyan",
+                _ => "orange",
             };
             draw_circle(context, &bullet.hitbox, color)
         }

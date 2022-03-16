@@ -1,5 +1,5 @@
 mod app;
-mod enemy;
+mod enemies;
 mod geometry;
 mod world;
 

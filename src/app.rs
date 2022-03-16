@@ -6,7 +6,7 @@ use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, KeyboardEvent};
 use yew::{html, Component, Context, NodeRef};
 
-use crate::{geometry::Vector, world::World};
+use crate::{geometry::Vector, world::{World, BulletType}};
 
 pub enum Msg {
     KeyDown(KeyboardEvent),
@@ -23,6 +23,7 @@ pub struct App {
 
     last_tick: f64,
     gun_cooldown: f64,
+    bullet_type: BulletType,
     lost: bool,
 
     down_list: HashSet<String>,
@@ -57,6 +58,7 @@ impl Component for App {
             down_list: HashSet::new(),
             last_tick: -1.0,
             lost: false,
+            bullet_type: BulletType::PlayerSniper,
             gun_cooldown: 0.0,
             _keydown_listener: keydown_listener,
             _keyup_listener: keyup_listener,
@@ -68,6 +70,14 @@ impl Component for App {
         match msg {
             Msg::KeyDown(e) => {
                 let key = e.code();
+                if key.as_str() == "ControlLeft" {
+                    if self.bullet_type == BulletType::PlayerSniper {
+                        self.bullet_type = BulletType::PlayerHeavy;
+                    } else {
+                        self.bullet_type = BulletType::PlayerSniper;
+                    }
+                    return false;
+                }
                 if !self.down_list.contains(&key) {
                     self.down_list.insert(key);
                 }
@@ -111,7 +121,7 @@ impl Component for App {
                         "ArrowDown" => delta.y += 300.0,
                         "Space" => {
                             if self.gun_cooldown <= 0.0 {
-                                self.world.shoot(Vector::new(0.0, -500.0));
+                                self.world.shoot(Vector::new(0.0, -500.0), self.bullet_type.clone());
                                 self.gun_cooldown += 0.2;
                             }
                         }
