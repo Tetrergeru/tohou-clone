@@ -1,0 +1,14 @@
+.main-block {
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: gray;
+}
+
+.main-canvas {
+    height: 90vh;
+    aspect-ratio: 3/5;
+    background-color: white;
+}
