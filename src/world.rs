@@ -2,7 +2,7 @@ use wasm_bindgen::JsValue;
 use web_sys::CanvasRenderingContext2d;
 
 use crate::{
-    enemies::{trajectories::CircleTrajectory, Enemy, premade::enemy_1},
+    enemies::{premade::enemy_1, Enemy},
     geometry::{Circle, Vector},
 };
 

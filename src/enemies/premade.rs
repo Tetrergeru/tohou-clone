@@ -18,7 +18,7 @@ pub fn enemy_1(offset: f64, rotation_speed: f64, stay_at: Vector) -> Enemy {
                     offset + std::f64::consts::PI / 2.0,
                     rotation_speed,
                 )),
-                Box::new(CircleEmitter::new(0.1, 2, 200.0)),
+                Box::new(CircleEmitter::new(0.15, 2, 200.0)),
             ),
             Phase::new(
                 3.0,
@@ -32,7 +32,7 @@ pub fn enemy_1(offset: f64, rotation_speed: f64, stay_at: Vector) -> Enemy {
                     offset + std::f64::consts::PI / 2.0,
                     -rotation_speed,
                 )),
-                Box::new(CircleEmitter::new(0.1, 2, 200.0)),
+                Box::new(CircleEmitter::new(0.15, 2, 200.0)),
             ),
             Phase::new(
                 3.0,

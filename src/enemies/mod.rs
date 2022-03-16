@@ -60,7 +60,7 @@ impl Enemy {
     }
 
     pub fn hit(&mut self, damage: f64) {
-        self.hitbox.r -= damage;
+        self.hitbox.r -= damage * 0.5;
         self.health -= damage;
     }
 

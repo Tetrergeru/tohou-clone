@@ -39,7 +39,7 @@ impl StayTrajectory {
 }
 
 impl Trajectory for StayTrajectory {
-    fn location(&self, time: f64) -> Vector {
+    fn location(&self, _time: f64) -> Vector {
         self.location
     }
 }
