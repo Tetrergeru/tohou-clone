@@ -1,0 +1,29 @@
+name: "Deploy"
+on:
+  push:
+    branches:
+      - master
+    tags:
+    - '*'
+jobs:
+  deploy-to-githubio:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - uses: jetli/trunk-action@v0.1.0
+      with:
+        version: 'latest'
+    - name: Install latest nightly
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: wasm32-unknown-unknown
+    - name: trunk build
+      run: trunk build --release -d ./public --public-url /tohou-clone/
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./public
