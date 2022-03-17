@@ -18,6 +18,19 @@ impl Vector {
     pub fn len(self) -> f64 {
         (self.x * self.x + self.y * self.y).sqrt()
     }
+
+    pub fn norm(self) -> Self {
+        self * (1.0 / self.len())
+    }
+
+    pub fn angle(self) -> f64 {
+        let v = self.norm();
+        if v.y > 0.0 {
+            self.x.acos()
+        } else {
+            std::f64::consts::TAU - self.x.acos()
+        }
+    }
 }
 
 impl Add for Vector {

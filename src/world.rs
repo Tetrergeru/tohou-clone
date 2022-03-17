@@ -49,24 +49,26 @@ pub enum TickResult {
 impl World {
     pub fn new(size: Vector) -> Self {
         Self {
-            player: Circle::new(size.x / 2.0, size.y / 6.0 * 5.0, 10.0),
+            player: Circle::new(0.0, size.y / 6.0 * 2.0, 10.0),
             enemy: vec![
-                enemy_1(0.0, 2.0, Vector::new(100.0, 300.0)),
-                enemy_1(std::f64::consts::PI, 2.0, Vector::new(500.0, 300.0)),
-                // Box::new(CircleTrajectory::new(
-                //     Circle::new(300.0, 300.0, 200.0),
-                //     0.0,
-                //     3.0,
-                //     30.0,
-                //     0.1,
-                // )),
-                // Box::new(CircleTrajectory::new(
-                //     Circle::new(300.0, 300.0, 200.0),
-                //     std::f64::consts::PI,
-                //     3.0,
-                //     30.0,
-                //     0.1,
-                // )),
+                enemy_1(
+                    0.0,
+                    2.0,
+                    vec![
+                        Vector::new(-200.0, -200.0),
+                        Vector::new(-20.0, -350.0),
+                        Vector::new(-200.0, -200.0),
+                    ],
+                ),
+                enemy_1(
+                    std::f64::consts::PI,
+                    2.0,
+                    vec![
+                        Vector::new(200.0, -200.0),
+                        Vector::new(20.0, -350.0),
+                        Vector::new(200.0, -200.0),
+                    ],
+                ),
             ],
             bullets: vec![],
             size,
@@ -120,7 +122,12 @@ impl World {
 
         for bullet in self.bullets.iter_mut() {
             bullet.hitbox.coord += bullet.speed * delta;
-            if !bullet.hitbox.in_bounds(0.0, 0.0, self.size.x, self.size.y) {
+            if !bullet.hitbox.in_bounds(
+                -self.size.x / 2.0,
+                -self.size.y / 2.0,
+                self.size.x / 2.0,
+                self.size.y / 2.0,
+            ) {
                 bullet.marked_for_delete = true;
             }
         }
@@ -160,9 +167,9 @@ impl World {
         context.fill_rect(0.0, 0.0, 700.0, 1100.0);
         context.restore();
 
-        draw_circle(context, &self.player, "green");
+        self.draw_circle(context, &self.player, "green");
         for enemy in self.enemy.iter() {
-            draw_circle(context, enemy.hitbox(), "red");
+            self.draw_circle(context, enemy.hitbox(), "red");
         }
         for bullet in self.bullets.iter() {
             let color = match &bullet.typ {
@@ -170,23 +177,23 @@ impl World {
                 BulletType::PlayerHeavy => "cyan",
                 _ => "orange",
             };
-            draw_circle(context, &bullet.hitbox, color)
+            self.draw_circle(context, &bullet.hitbox, color)
         }
     }
-}
 
-fn draw_circle(context: &CanvasRenderingContext2d, circle: &Circle, color: &str) {
-    context.begin_path();
-    context.set_fill_style(&JsValue::from_str(color));
-    context
-        .arc(
-            circle.coord.x,
-            circle.coord.y,
-            circle.r,
-            0.0,
-            std::f64::consts::PI * 2.0,
-        )
-        .unwrap();
-    context.fill();
-    context.close_path();
+    fn draw_circle(&self, context: &CanvasRenderingContext2d, circle: &Circle, color: &str) {
+        context.begin_path();
+        context.set_fill_style(&JsValue::from_str(color));
+        context
+            .arc(
+                self.size.x / 2.0 + circle.coord.x,
+                self.size.y / 2.0 + circle.coord.y,
+                circle.r,
+                0.0,
+                std::f64::consts::PI * 2.0,
+            )
+            .unwrap();
+        context.fill();
+        context.close_path();
+    }
 }

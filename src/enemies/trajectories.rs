@@ -43,3 +43,23 @@ impl Trajectory for StayTrajectory {
         self.location
     }
 }
+
+pub struct FromToTrajectory {
+    pub from: Vector,
+    pub speed: Vector,
+}
+
+impl FromToTrajectory {
+    pub fn new(from: Vector, to: Vector, time: f64) -> Self {
+        Self {
+            from,
+            speed: (to - from) * (1.0 / time),
+        }
+    }
+}
+
+impl Trajectory for FromToTrajectory {
+    fn location(&self, time: f64) -> Vector {
+        self.from + self.speed * time
+    }
+}
