@@ -4,6 +4,7 @@ use crate::{
 
 use super::Trajectory;
 
+#[derive(Clone)]
 pub struct CircleTrajectory {
     pub trajectory: Circle,
     pub timer_offset: f64,
@@ -27,6 +28,7 @@ impl Trajectory for CircleTrajectory {
     }
 }
 
+#[derive(Clone)]
 pub struct StayTrajectory {
     pub location: Vector,
 }
@@ -44,6 +46,7 @@ impl Trajectory for StayTrajectory {
     }
 }
 
+#[derive(Clone)]
 pub struct FromToTrajectory {
     pub from: Vector,
     pub speed: Vector,

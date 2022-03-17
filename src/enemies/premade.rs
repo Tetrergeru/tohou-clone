@@ -6,10 +6,15 @@ use super::{
     Enemy, Phase,
 };
 
-pub fn enemy_1(offset: f64, rotation_speed: f64, points: Vec<Vector>) -> Enemy {
+pub fn enemy_1(start: Vector, offset: f64, rotation_speed: f64, points: Vec<Vector>) -> Enemy {
     let mut stages = vec![
         Phase::new(
-            std::f64::consts::PI * 1.0,
+            5.0,
+            Box::new(FromToTrajectory::new(start, points[0], 5.0)),
+            Box::new(ForwardEmitter::new(0.2, 6, Vector::new(0.0, 200.0), 1.0)),
+        ),
+        Phase::new(
+            std::f64::consts::PI * 1.5,
             Box::new(CircleTrajectory::new(
                 Circle::new(0.0, -200.0, 200.0),
                 offset + std::f64::consts::PI / 2.0,
@@ -37,7 +42,7 @@ pub fn enemy_1(offset: f64, rotation_speed: f64, points: Vec<Vector>) -> Enemy {
     ));
 
     stages.push(Phase::new(
-        std::f64::consts::PI * 3.0,
+        std::f64::consts::PI * 1.5,
         Box::new(CircleTrajectory::new(
             Circle::new(0.0, -200.0, 200.0),
             offset + std::f64::consts::PI / 2.0,
@@ -45,10 +50,11 @@ pub fn enemy_1(offset: f64, rotation_speed: f64, points: Vec<Vector>) -> Enemy {
         )),
         Box::new(CircleEmitter::new(0.15, 2, 200.0)),
     ));
-    stages.push(Phase::new(
+    stages.push(Phase::new_jump(
         3.0,
         Box::new(StayTrajectory::new(*points.last().unwrap())),
         Box::new(CircleEmitter::new(0.2, 6, 300.0)),
+        1,
     ));
 
     Enemy::new(Circle::new(0.0, 0.0, 30.0), 30.0, stages)

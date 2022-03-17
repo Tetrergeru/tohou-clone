@@ -5,6 +5,7 @@ use crate::{
 
 use super::BulletEmmiter;
 
+#[derive(Clone)]
 pub struct CircleEmitter {
     timer: f64,
     bullet_cooldown: f64,
@@ -55,6 +56,7 @@ impl BulletEmmiter for CircleEmitter {
     }
 }
 
+#[derive(Clone)]
 pub struct ForwardEmitter {
     timer: f64,
     bullet_cooldown: f64,
@@ -71,7 +73,7 @@ impl ForwardEmitter {
             bullet_cooldown: cooldown,
             bullet_number: bullets,
             bullet_speed: forward.len(),
-            forward,
+            forward: forward.norm(),
             spawn_angle,
         }
     }

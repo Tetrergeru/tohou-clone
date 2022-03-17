@@ -3,10 +3,13 @@ use crate::{
     world::Bullet,
 };
 
+use dyn_clone::DynClone;
+
 pub mod bullet_emmiters;
 pub mod premade;
 pub mod trajectories;
 
+#[derive(Clone)]
 pub struct Enemy {
     hitbox: Circle,
     health: f64,
@@ -15,18 +18,39 @@ pub struct Enemy {
     time: f64,
 }
 
+#[derive(Clone)]
 pub struct Phase {
     length: f64,
     trajectory: Box<dyn Trajectory>,
     bullets: Box<dyn BulletEmmiter>,
+    next: Option<usize>,
 }
 
 impl Phase {
-    fn new(length: f64, trajectory: Box<dyn Trajectory>, bullets: Box<dyn BulletEmmiter>) -> Self {
+    pub fn new(
+        length: f64,
+        trajectory: Box<dyn Trajectory>,
+        bullets: Box<dyn BulletEmmiter>,
+    ) -> Self {
         Self {
             length,
             trajectory,
             bullets,
+            next: None,
+        }
+    }
+
+    pub fn new_jump(
+        length: f64,
+        trajectory: Box<dyn Trajectory>,
+        bullets: Box<dyn BulletEmmiter>,
+        jump_to: usize,
+    ) -> Self {
+        Self {
+            length,
+            trajectory,
+            bullets,
+            next: Some(jump_to),
         }
     }
 }
@@ -48,7 +72,11 @@ impl Enemy {
         let current_phase_length = self.phases[self.phase].length;
         if self.time > current_phase_length {
             self.time -= current_phase_length;
-            self.phase = (self.phase + 1) % self.phases.len();
+
+            self.phase = match self.phases[self.phase].next {
+                Some(next) => next,
+                None => (self.phase + 1) % self.phases.len(),
+            }
         }
 
         let phase = &mut self.phases[self.phase];
@@ -73,10 +101,14 @@ impl Enemy {
     }
 }
 
-pub trait Trajectory {
+pub trait Trajectory: DynClone {
     fn location(&self, time: f64) -> Vector;
 }
 
-pub trait BulletEmmiter {
+dyn_clone::clone_trait_object!(Trajectory);
+
+pub trait BulletEmmiter: DynClone {
     fn tick(&mut self, enemy: &Circle, time: f64, delta: f64, bullets: &mut Vec<Bullet>);
 }
+
+dyn_clone::clone_trait_object!(BulletEmmiter);

@@ -2,8 +2,9 @@ use wasm_bindgen::JsValue;
 use web_sys::CanvasRenderingContext2d;
 
 use crate::{
-    enemies::{premade::enemy_1, Enemy},
+    enemies::Enemy,
     geometry::{Circle, Vector},
+    level::{l1, Level},
 };
 
 #[derive(Clone, PartialEq)]
@@ -34,12 +35,14 @@ impl Bullet {
 
 pub struct World {
     player: Circle,
-    enemy: Vec<Enemy>,
+    enemies: Vec<Enemy>,
     bullets: Vec<Bullet>,
     size: Vector,
     pub time: f64,
+    level: Level,
 }
 
+#[derive(PartialEq)]
 pub enum TickResult {
     None,
     Win,
@@ -50,26 +53,8 @@ impl World {
     pub fn new(size: Vector) -> Self {
         Self {
             player: Circle::new(0.0, size.y / 6.0 * 2.0, 10.0),
-            enemy: vec![
-                enemy_1(
-                    0.0,
-                    2.0,
-                    vec![
-                        Vector::new(-200.0, -200.0),
-                        Vector::new(-20.0, -350.0),
-                        Vector::new(-200.0, -200.0),
-                    ],
-                ),
-                enemy_1(
-                    std::f64::consts::PI,
-                    2.0,
-                    vec![
-                        Vector::new(200.0, -200.0),
-                        Vector::new(20.0, -350.0),
-                        Vector::new(200.0, -200.0),
-                    ],
-                ),
-            ],
+            level: l1(),
+            enemies: vec![],
             bullets: vec![],
             size,
             time: 0.0,
@@ -83,26 +68,29 @@ impl World {
     pub fn tick(&mut self, delta: f64) -> TickResult {
         self.time += delta;
 
+        let level_tick = self.level.tick(&mut self.enemies, &mut self.bullets);
+        if level_tick != TickResult::None {
+            return level_tick;
+        }
+
+        // === Collisions ===
+
+        if self.player.coord.x < -self.size.x / 2.0 + self.player.r {
+            self.player.coord.x = -self.size.x / 2.0 + self.player.r;
+        }
+        if self.player.coord.x > self.size.x / 2.0 - self.player.r {
+            self.player.coord.x = self.size.x / 2.0 - self.player.r;
+        }
+        if self.player.coord.y < -self.size.y / 2.0 + self.player.r {
+            self.player.coord.y = -self.size.y / 2.0 + self.player.r;
+        }
+        if self.player.coord.y > self.size.y / 2.0 - self.player.r {
+            self.player.coord.y = self.size.y / 2.0 - self.player.r;
+        }
+
         for bullet in self.bullets.iter_mut() {
             if self.player.collides_with(&bullet.hitbox) && bullet.typ == BulletType::Enemy {
                 return TickResult::Loose;
-            }
-        }
-
-        for enemy in self.enemy.iter_mut() {
-            enemy.tick(delta, &mut self.bullets);
-        }
-
-        for e in self.enemy.iter_mut() {
-            for bullet in self.bullets.iter_mut() {
-                if e.hitbox().collides_with(&bullet.hitbox) {
-                    if bullet.typ == BulletType::PlayerSniper {
-                        e.hit(3.0);
-                        bullet.marked_for_delete = true;
-                    } else if bullet.typ == BulletType::PlayerHeavy {
-                        bullet.marked_for_delete = true;
-                    }
-                }
             }
         }
 
@@ -120,6 +108,25 @@ impl World {
             }
         }
 
+        for e in self.enemies.iter_mut() {
+            for bullet in self.bullets.iter_mut() {
+                if e.hitbox().collides_with(&bullet.hitbox) {
+                    if bullet.typ == BulletType::PlayerSniper {
+                        e.hit(3.0);
+                        bullet.marked_for_delete = true;
+                    } else if bullet.typ == BulletType::PlayerHeavy {
+                        bullet.marked_for_delete = true;
+                    }
+                }
+            }
+        }
+
+        // === Delete enemies and bullets ===
+
+        for enemy in self.enemies.iter_mut() {
+            enemy.tick(delta, &mut self.bullets);
+        }
+
         for bullet in self.bullets.iter_mut() {
             bullet.hitbox.coord += bullet.speed * delta;
             if !bullet.hitbox.in_bounds(
@@ -134,11 +141,7 @@ impl World {
 
         self.bullets.retain(|it| !it.marked_for_delete);
 
-        self.enemy.retain(|it| it.is_alive());
-
-        if self.enemy.is_empty() {
-            return TickResult::Win;
-        }
+        self.enemies.retain(|it| it.is_alive());
 
         TickResult::None
     }
@@ -168,7 +171,7 @@ impl World {
         context.restore();
 
         self.draw_circle(context, &self.player, "green");
-        for enemy in self.enemy.iter() {
+        for enemy in self.enemies.iter() {
             self.draw_circle(context, enemy.hitbox(), "red");
         }
         for bullet in self.bullets.iter() {
