@@ -1,10 +1,11 @@
 use wasm_bindgen::JsValue;
-use web_sys::CanvasRenderingContext2d;
+use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
 
 use crate::{
     enemies::Enemy,
-    geometry::{Circle, Vector},
+    geometry::{Circle, Vector, Rect},
     level::{l1, Level},
+    textures::TextureManager,
 };
 
 #[derive(Clone, PartialEq)]
@@ -163,7 +164,10 @@ impl World {
         ));
     }
 
-    pub fn draw(&self, context: &CanvasRenderingContext2d) {
+    pub fn draw(&self, context: &CanvasRenderingContext2d, texture_manager: &TextureManager) {
+        let missile = texture_manager.get("resources/missile.png");
+        let missile_2 = texture_manager.get("resources/missile_2.png");
+
         context.save();
         context.set_global_composite_operation("copy").unwrap();
         context.set_fill_style(&JsValue::from_str("rgba(0,0,0,0)"));
@@ -172,15 +176,26 @@ impl World {
 
         self.draw_circle(context, &self.player, "green");
         for enemy in self.enemies.iter() {
+            let img = texture_manager.get(&enemy.sprite);
+            let center = enemy.hitbox().coord;
+            let w = img.width() as f64;
+            let h = img.height() as f64;
+            
+            let bounds = Rect::new(center.x, center.y, w, h).with_width(enemy.display_width);
+
+            self.draw_image(context, &bounds, img);
             self.draw_circle(context, enemy.hitbox(), "red");
         }
         for bullet in self.bullets.iter() {
-            let color = match &bullet.typ {
-                BulletType::PlayerSniper => "blue",
-                BulletType::PlayerHeavy => "cyan",
-                _ => "orange",
-            };
-            self.draw_circle(context, &bullet.hitbox, color)
+            match bullet.typ {
+                BulletType::PlayerSniper => {
+                    self.draw_bullet(context, missile_2, bullet, 1.5);
+                }
+                BulletType::Enemy => {
+                    self.draw_bullet(context, missile, bullet, 1.5);
+                }
+                BulletType::PlayerHeavy => self.draw_circle(context, &bullet.hitbox, "cyan"),
+            }
         }
     }
 
@@ -198,5 +213,53 @@ impl World {
             .unwrap();
         context.fill();
         context.close_path();
+    }
+
+    fn draw_image(
+        &self,
+        context: &CanvasRenderingContext2d,
+        bounds: &Rect,
+        img: &HtmlImageElement,
+    ) {
+        context
+            .draw_image_with_html_image_element_and_dw_and_dh(
+                img,
+                self.size.x / 2.0 + bounds.center.x - bounds.size.x / 2.0,
+                self.size.y / 2.0 + bounds.center.y - bounds.size.y / 2.0,
+                bounds.size.x,
+                bounds.size.y,
+            )
+            .unwrap();
+    }
+
+    fn draw_bullet(
+        &self,
+        context: &CanvasRenderingContext2d,
+        img: &HtmlImageElement,
+        bullet: &Bullet,
+        size_mod: f64,
+    ) {
+        let mut circle = bullet.hitbox.clone();
+        circle.r *= size_mod;
+        let angle = bullet.speed.norm().angle() - std::f64::consts::PI / 2.0;
+
+        context.save();
+        context
+            .translate(
+                self.size.x / 2.0 + circle.coord.x,
+                self.size.y / 2.0 + circle.coord.y,
+            )
+            .unwrap();
+        context.rotate(angle).unwrap();
+        context
+            .draw_image_with_html_image_element_and_dw_and_dh(
+                img,
+                -circle.r,
+                -circle.r,
+                circle.r * 2.0,
+                circle.r * 2.0,
+            )
+            .unwrap();
+        context.restore();
     }
 }

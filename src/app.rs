@@ -3,15 +3,22 @@ use std::collections::HashSet;
 use gloo::{events::EventListener, utils::document};
 use gloo_render::{request_animation_frame, AnimationFrame};
 use wasm_bindgen::{JsCast, JsValue};
-use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, KeyboardEvent};
+use wasm_bindgen_futures::spawn_local;
+use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, HtmlImageElement, KeyboardEvent};
 use yew::{html, Component, Context, NodeRef};
 
-use crate::{geometry::Vector, world::{World, BulletType}};
+use crate::{
+    geometry::Vector,
+    textures::TextureManager,
+    world::{BulletType, World},
+};
 
 pub enum Msg {
     KeyDown(KeyboardEvent),
     KeyUp(KeyboardEvent),
     Timer(f64),
+    DownloadRequested(String),
+    ImageDownloaded(String, HtmlImageElement),
 }
 
 pub struct App {
@@ -24,13 +31,24 @@ pub struct App {
     last_tick: f64,
     gun_cooldown: f64,
     bullet_type: BulletType,
-    lost: bool,
+
+    game_state: GameState,
 
     down_list: HashSet<String>,
+
+    texture_manager: TextureManager,
+    unfinished_downloads: usize,
 
     _keydown_listener: EventListener,
     _keyup_listener: EventListener,
     _frame: Option<AnimationFrame>,
+}
+
+#[derive(PartialEq)]
+enum GameState {
+    Loading,
+    Playing,
+    Lost,
 }
 
 impl Component for App {
@@ -57,9 +75,13 @@ impl Component for App {
             world: World::new(Vector::new(600.0, 1000.0)),
             down_list: HashSet::new(),
             last_tick: -1.0,
-            lost: false,
+            game_state: GameState::Loading,
             bullet_type: BulletType::PlayerSniper,
             gun_cooldown: 0.0,
+
+            texture_manager: TextureManager::new(),
+            unfinished_downloads: 0,
+
             _keydown_listener: keydown_listener,
             _keyup_listener: keyup_listener,
             _frame: None,
@@ -91,13 +113,13 @@ impl Component for App {
                 false
             }
             Msg::Timer(time) => {
-                if !self.lost {
-                    self._frame = Some({
-                        let link = ctx.link().clone();
-                        request_animation_frame(move |time| link.send_message(Msg::Timer(time)))
-                    });
-                } else {
-                    return false;
+                match self.game_state {
+                    GameState::Playing => self.request_frame(ctx),
+                    GameState::Loading => {
+                        self.game_over("rgba(100, 100, 255, 255)");
+                        return false;
+                    }
+                    _ => return false,
                 }
 
                 if self.last_tick < 0.0 {
@@ -121,7 +143,8 @@ impl Component for App {
                         "ArrowDown" => delta.y += 300.0,
                         "Space" => {
                             if self.gun_cooldown <= 0.0 {
-                                self.world.shoot(Vector::new(0.0, -500.0), self.bullet_type.clone());
+                                self.world
+                                    .shoot(Vector::new(0.0, -500.0), self.bullet_type.clone());
                                 self.gun_cooldown += 0.2;
                             }
                         }
@@ -131,17 +154,47 @@ impl Component for App {
                 self.world.move_player(delta * delta_time);
                 match self.world.tick(delta_time) {
                     crate::world::TickResult::None => {
-                        self.world.draw(self.context.as_ref().unwrap());
+                        self.world
+                            .draw(self.context.as_ref().unwrap(), &self.texture_manager);
                     }
                     crate::world::TickResult::Win => {
-                        self.lost = true;
+                        self.game_state = GameState::Lost;
                         self.game_over("rgba(100,255,100,255)");
                     }
                     crate::world::TickResult::Loose => {
-                        self.lost = true;
+                        self.game_state = GameState::Lost;
                         self.game_over("rgba(255,100,100,255)");
                     }
                 }
+                false
+            }
+            Msg::ImageDownloaded(path, img) => {
+                log::debug!("Msg::ImageDownloaded");
+                self.texture_manager.insert(path, img);
+                self.unfinished_downloads -= 1;
+
+                if self.unfinished_downloads == 0 {
+                    self.game_state = GameState::Playing;
+                    self.request_frame(ctx);
+                }
+
+                false
+            }
+            Msg::DownloadRequested(path) => {
+                log::debug!("Msg::DownloadRequested");
+                self.game_state = GameState::Loading;
+                self.unfinished_downloads += 1;
+
+                let callback = ctx
+                    .link()
+                    .clone()
+                    .callback(|(str, img)| Msg::ImageDownloaded(str, img));
+
+                spawn_local(async move {
+                    let img = TextureManager::download(&path).await;
+                    callback.emit((path, img));
+                });
+
                 false
             }
         }
@@ -174,12 +227,11 @@ impl Component for App {
                     .unwrap(),
             );
 
-            self._frame = Some({
-                let link = ctx.link().clone();
-                request_animation_frame(move |time| link.send_message(Msg::Timer(time)))
-            });
+            self.request_frame(ctx);
 
-            self.world.draw(self.context.as_ref().unwrap());
+            for file in self.required_textures() {
+                ctx.link().send_message(Msg::DownloadRequested(file));
+            }
         }
     }
 }
@@ -192,5 +244,22 @@ impl App {
         context.set_fill_style(&JsValue::from_str(color));
         context.fill_rect(0.0, 0.0, 601.0, 1000.0);
         context.restore();
+    }
+
+    fn request_frame(&mut self, ctx: &Context<Self>) {
+        self._frame = Some({
+            let link = ctx.link().clone();
+            request_animation_frame(move |time| link.send_message(Msg::Timer(time)))
+        })
+    }
+
+    fn required_textures(&self) -> impl Iterator<Item = String> {
+        [
+            "resources/ghost.png".to_string(),
+            "resources/witch.png".to_string(),
+            "resources/missile.png".to_string(),
+            "resources/missile_2.png".to_string(),
+        ]
+        .into_iter()
     }
 }

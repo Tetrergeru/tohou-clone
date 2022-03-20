@@ -11,6 +11,8 @@ pub mod trajectories;
 
 #[derive(Clone)]
 pub struct Enemy {
+    pub sprite: String,
+    pub display_width: f64,
     hitbox: Circle,
     health: f64,
     phases: Vec<Phase>,
@@ -56,13 +58,15 @@ impl Phase {
 }
 
 impl Enemy {
-    pub fn new(hitbox: Circle, health: f64, phases: Vec<Phase>) -> Self {
+    pub fn new(hitbox: Circle, health: f64, phases: Vec<Phase>, sprite: String, display_width: f64) -> Self {
         Self {
             hitbox,
             health,
             phases,
             time: 0.0,
             phase: 0,
+            sprite,
+            display_width,
         }
     }
 

@@ -89,3 +89,25 @@ impl Circle {
         x > l - self.r && x < r + self.r && y > t - self.r && y < b + self.r
     }
 }
+
+#[derive(Clone)]
+pub struct Rect {
+    pub center: Vector,
+    pub size: Vector,
+}
+
+impl Rect {
+    pub fn new(x: f64, y: f64, w: f64, h: f64) -> Self {
+        Self {
+            center: Vector::new(x, y),
+            size: Vector::new(w, h),
+        }
+    }
+
+    pub fn with_width(self, new_width: f64) -> Self {
+        Self {
+            center: self.center,
+            size: self.size * (new_width / self.size.x),
+        }
+    }
+}

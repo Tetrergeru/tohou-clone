@@ -57,5 +57,5 @@ pub fn enemy_1(start: Vector, offset: f64, rotation_speed: f64, points: Vec<Vect
         1,
     ));
 
-    Enemy::new(Circle::new(0.0, 0.0, 30.0), 30.0, stages)
+    Enemy::new(Circle::new(0.0, 0.0, 30.0), 30.0, stages, "resources/ghost.png".to_string(), 100.0)
 }
