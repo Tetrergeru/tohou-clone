@@ -1,7 +1,9 @@
 use crate::{
     enemies::{
-        bullet_emmiters::ForwardEmitter, premade::enemy_1, trajectories::FromToTrajectory, Enemy,
-        Phase,
+        bullet_emmiters::ForwardEmitter,
+        premade::enemy_1,
+        trajectories::{FromToTrajectory, StayTrajectory},
+        Enemy, Phase,
     },
     geometry::{Circle, Vector},
     world::{Bullet, TickResult},
@@ -30,7 +32,7 @@ impl Level {
 pub fn l1() -> Level {
     Level {
         scene: 0,
-        scenes: vec![l1s1(), l1s2()],
+        scenes: vec![l1s0(), l1s1(), l1s2()],
     }
 }
 
@@ -43,6 +45,31 @@ impl Scene {
         for enemy in self.enemies.iter() {
             to.push(enemy.clone());
         }
+    }
+}
+
+fn l1s0() -> Scene {
+    Scene {
+        enemies: vec![Enemy::new(
+            Circle::new(0.0, 0.0, 20.0),
+            30.0,
+            vec![
+                Phase::new(
+                    3.0,
+                    Box::new(FromToTrajectory::new(
+                        Vector::new(0.0, -800.0),
+                        Vector::new(0.0, -400.0),
+                        3.0,
+                    )),
+                    Box::new(ForwardEmitter::new(0.3, 2, Vector::new(0.0, 200.0), 0.5)),
+                ),
+                Phase::new(
+                    f64::MAX,
+                    Box::new(StayTrajectory::new(Vector::new(0.0, -400.0))),
+                    Box::new(ForwardEmitter::new(0.3, 2, Vector::new(0.0, 200.0), 0.5)),
+                ),
+            ],
+        )],
     }
 }
 
@@ -59,7 +86,7 @@ fn l1s1() -> Scene {
             Vector::new(200.0, -50.0),
         ),
         (
-            Vector::new(300.0, -200.0),
+            Vector::new(400.0, -200.0),
             Vector::new(100.0, -300.0),
             Vector::new(-250.0, -400.0),
         ),
@@ -77,17 +104,32 @@ fn l1s1() -> Scene {
                         Phase::new(
                             6.0,
                             Box::new(FromToTrajectory::new(it.0, it.1, 6.0)),
-                            Box::new(ForwardEmitter::new(0.3, 2 + idx, Vector::new(0.0, 200.0), 1.5)),
+                            Box::new(ForwardEmitter::new(
+                                0.3,
+                                2 + idx,
+                                Vector::new(0.0, 200.0),
+                                1.5,
+                            )),
                         ),
                         Phase::new(
                             6.0,
                             Box::new(FromToTrajectory::new(it.1, it.2, 6.0)),
-                            Box::new(ForwardEmitter::new(0.3, 2 + idx, Vector::new(0.0, 200.0), 1.5)),
+                            Box::new(ForwardEmitter::new(
+                                0.3,
+                                2 + idx,
+                                Vector::new(0.0, 200.0),
+                                1.5,
+                            )),
                         ),
                         Phase::new_jump(
                             6.0,
                             Box::new(FromToTrajectory::new(it.2, it.1, 6.0)),
-                            Box::new(ForwardEmitter::new(0.3, 2 + idx, Vector::new(0.0, 200.0), 1.5)),
+                            Box::new(ForwardEmitter::new(
+                                0.3,
+                                2 + idx,
+                                Vector::new(0.0, 200.0),
+                                1.5,
+                            )),
                             1,
                         ),
                     ],
@@ -102,7 +144,7 @@ fn l1s2() -> Scene {
         enemies: vec![
             enemy_1(
                 Vector::new(-350.0, -550.0),
-                0.0,
+                std::f64::consts::PI,
                 2.0,
                 vec![
                     Vector::new(-200.0, -200.0),
@@ -112,7 +154,7 @@ fn l1s2() -> Scene {
             ),
             enemy_1(
                 Vector::new(350.0, -550.0),
-                std::f64::consts::PI,
+                0.0,
                 2.0,
                 vec![
                     Vector::new(200.0, -200.0),

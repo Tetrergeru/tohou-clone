@@ -14,7 +14,7 @@ pub fn enemy_1(start: Vector, offset: f64, rotation_speed: f64, points: Vec<Vect
             Box::new(ForwardEmitter::new(0.2, 6, Vector::new(0.0, 200.0), 1.0)),
         ),
         Phase::new(
-            std::f64::consts::PI * 1.5,
+            std::f64::consts::PI * 2.0,
             Box::new(CircleTrajectory::new(
                 Circle::new(0.0, -200.0, 200.0),
                 offset + std::f64::consts::PI / 2.0,
@@ -42,7 +42,7 @@ pub fn enemy_1(start: Vector, offset: f64, rotation_speed: f64, points: Vec<Vect
     ));
 
     stages.push(Phase::new(
-        std::f64::consts::PI * 1.5,
+        std::f64::consts::PI * 2.0,
         Box::new(CircleTrajectory::new(
             Circle::new(0.0, -200.0, 200.0),
             offset + std::f64::consts::PI / 2.0,

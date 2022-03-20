@@ -96,7 +96,7 @@ impl BulletEmmiter for ForwardEmitter {
         let end_angle = self.forward.angle() + self.spawn_angle / 2.0;
 
         self.timer += self.bullet_cooldown;
-        let d_angle = self.spawn_angle / self.bullet_number as f64;
+        let d_angle = self.spawn_angle / (self.bullet_number - 1) as f64;
 
         while angle <= end_angle {
             let speed_direction = Vector::new(angle.cos(), angle.sin());
