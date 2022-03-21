@@ -26,6 +26,7 @@ features = [
   'HtmlElement',
   'HtmlImageElement',
   'HtmlCanvasElement',
+  'HtmlAudioElement',
   'CanvasRenderingContext2d',
   'Blob',
   'BlobPropertyBag',

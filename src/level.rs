@@ -27,6 +27,10 @@ impl Level {
         }
         TickResult::None
     }
+
+    pub fn reset(&mut self) {
+        self.scene = 0;
+    }
 }
 
 pub fn l1() -> Level {

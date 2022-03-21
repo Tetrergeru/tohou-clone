@@ -2,8 +2,9 @@ use wasm_bindgen::JsValue;
 use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
 
 use crate::{
+    audio::AudioManager,
     enemies::Enemy,
-    geometry::{Circle, Vector, Rect},
+    geometry::{Circle, Rect, Vector},
     level::{l1, Level},
     textures::TextureManager,
 };
@@ -66,7 +67,14 @@ impl World {
         self.player.coord += delta;
     }
 
-    pub fn tick(&mut self, delta: f64) -> TickResult {
+    pub fn reset(&mut self) {
+        self.bullets.drain(..);
+        self.enemies.drain(..);
+        self.level.reset();
+        self.player.coord = Vector::new(0.0, self.size.y / 6.0 * 2.0);
+    }
+
+    pub fn tick(&mut self, delta: f64, audio: &AudioManager) -> TickResult {
         self.time += delta;
 
         let level_tick = self.level.tick(&mut self.enemies, &mut self.bullets);
@@ -95,6 +103,7 @@ impl World {
             }
         }
 
+        let mut bullet_collision = false;
         for i in 0..self.bullets.len() {
             let bi = self.bullets[i].clone();
             for j in (i + 1)..self.bullets.len() {
@@ -105,21 +114,31 @@ impl World {
                 if bi.hitbox.collides_with(&bj.hitbox) && bi.typ != bj.typ {
                     self.bullets[i].marked_for_delete = true;
                     self.bullets[j].marked_for_delete = true;
+                    bullet_collision = true;
                 }
             }
         }
+        if bullet_collision {
+            audio.play_name("resources/shoot.wav", false, true, 0.3);
+        }
 
+        let mut hit_enemy = false;
         for e in self.enemies.iter_mut() {
             for bullet in self.bullets.iter_mut() {
                 if e.hitbox().collides_with(&bullet.hitbox) {
                     if bullet.typ == BulletType::PlayerSniper {
                         e.hit(3.0);
                         bullet.marked_for_delete = true;
+                        hit_enemy = true;
                     } else if bullet.typ == BulletType::PlayerHeavy {
                         bullet.marked_for_delete = true;
+                        hit_enemy = true;
                     }
                 }
             }
+        }
+        if hit_enemy {
+            audio.play_name("resources/shoot_2.wav", false, true, 0.3);
         }
 
         // === Delete enemies and bullets ===
@@ -151,7 +170,7 @@ impl World {
         Bullet::new(BulletType::Enemy, Circle::new(coord.x, coord.y, 5.0), speed)
     }
 
-    pub fn shoot(&mut self, speed: Vector, typ: BulletType) {
+    pub fn shoot(&mut self, speed: Vector, typ: BulletType, audio: &AudioManager) {
         let r = match &typ {
             BulletType::PlayerSniper => 5.0,
             BulletType::PlayerHeavy => 10.0,
@@ -162,6 +181,7 @@ impl World {
             Circle::new(self.player.coord.x, self.player.coord.y, r),
             speed,
         ));
+        audio.play_name("resources/shoot_3.wav", false, true, 0.1);
     }
 
     pub fn draw(&self, context: &CanvasRenderingContext2d, texture_manager: &TextureManager) {
@@ -180,7 +200,7 @@ impl World {
             let center = enemy.hitbox().coord;
             let w = img.width() as f64;
             let h = img.height() as f64;
-            
+
             let bounds = Rect::new(center.x, center.y, w, h).with_width(enemy.display_width);
 
             self.draw_image(context, &bounds, img);

@@ -4,10 +4,14 @@ use gloo::{events::EventListener, utils::document};
 use gloo_render::{request_animation_frame, AnimationFrame};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, HtmlImageElement, KeyboardEvent};
+use web_sys::{
+    CanvasRenderingContext2d, HtmlAudioElement, HtmlCanvasElement, HtmlImageElement, KeyboardEvent,
+};
 use yew::{html, Component, Context, NodeRef};
 
 use crate::{
+    audio::AudioManager,
+    download::{download_audio, download_image, Download},
     geometry::Vector,
     textures::TextureManager,
     world::{BulletType, World},
@@ -17,8 +21,9 @@ pub enum Msg {
     KeyDown(KeyboardEvent),
     KeyUp(KeyboardEvent),
     Timer(f64),
-    DownloadRequested(String),
+    DownloadRequested(Download),
     ImageDownloaded(String, HtmlImageElement),
+    AudioDownloaded(String, HtmlAudioElement),
 }
 
 pub struct App {
@@ -37,6 +42,7 @@ pub struct App {
     down_list: HashSet<String>,
 
     texture_manager: TextureManager,
+    audio_manager: AudioManager,
     unfinished_downloads: usize,
 
     _keydown_listener: EventListener,
@@ -47,6 +53,7 @@ pub struct App {
 #[derive(PartialEq)]
 enum GameState {
     Loading,
+    FinishLoading,
     Playing,
     Lost,
 }
@@ -80,6 +87,7 @@ impl Component for App {
             gun_cooldown: 0.0,
 
             texture_manager: TextureManager::new(),
+            audio_manager: AudioManager::new(),
             unfinished_downloads: 0,
 
             _keydown_listener: keydown_listener,
@@ -92,6 +100,15 @@ impl Component for App {
         match msg {
             Msg::KeyDown(e) => {
                 let key = e.code();
+                if self.game_state == GameState::FinishLoading {
+                    self.request_frame(ctx);
+                    return false;
+                }
+                if self.game_state == GameState::Lost && key.as_str() == "Space" {
+                    self.world.reset();
+                    self.start(ctx);
+                    return false;
+                }
                 if key.as_str() == "ControlLeft" {
                     if self.bullet_type == BulletType::PlayerSniper {
                         self.bullet_type = BulletType::PlayerHeavy;
@@ -115,8 +132,9 @@ impl Component for App {
             Msg::Timer(time) => {
                 match self.game_state {
                     GameState::Playing => self.request_frame(ctx),
-                    GameState::Loading => {
-                        self.game_over("rgba(100, 100, 255, 255)");
+                    GameState::FinishLoading => self.start(ctx),
+                    GameState::Lost => {
+                        AudioManager::stop(&self.audio_manager.get("resources/resurrection.mp3"));
                         return false;
                     }
                     _ => return false,
@@ -143,8 +161,11 @@ impl Component for App {
                         "ArrowDown" => delta.y += 300.0,
                         "Space" => {
                             if self.gun_cooldown <= 0.0 {
-                                self.world
-                                    .shoot(Vector::new(0.0, -500.0), self.bullet_type.clone());
+                                self.world.shoot(
+                                    Vector::new(0.0, -500.0),
+                                    self.bullet_type.clone(),
+                                    &self.audio_manager,
+                                );
                                 self.gun_cooldown += 0.2;
                             }
                         }
@@ -152,7 +173,7 @@ impl Component for App {
                     }
                 }
                 self.world.move_player(delta * delta_time);
-                match self.world.tick(delta_time) {
+                match self.world.tick(delta_time, &self.audio_manager) {
                     crate::world::TickResult::None => {
                         self.world
                             .draw(self.context.as_ref().unwrap(), &self.texture_manager);
@@ -174,26 +195,51 @@ impl Component for App {
                 self.unfinished_downloads -= 1;
 
                 if self.unfinished_downloads == 0 {
-                    self.game_state = GameState::Playing;
-                    self.request_frame(ctx);
+                    self.game_state = GameState::FinishLoading;
                 }
 
                 false
             }
-            Msg::DownloadRequested(path) => {
-                log::debug!("Msg::DownloadRequested");
+            Msg::AudioDownloaded(path, audio) => {
+                self.audio_manager.insert(path, audio);
+                self.unfinished_downloads -= 1;
+
+                if self.unfinished_downloads == 0 {
+                    self.game_state = GameState::FinishLoading;
+                }
+
+                false
+            }
+            Msg::DownloadRequested(download) => {
                 self.game_state = GameState::Loading;
                 self.unfinished_downloads += 1;
 
-                let callback = ctx
-                    .link()
-                    .clone()
-                    .callback(|(str, img)| Msg::ImageDownloaded(str, img));
+                self.game_over("rgba(100, 100, 255, 255)");
 
-                spawn_local(async move {
-                    let img = TextureManager::download(&path).await;
-                    callback.emit((path, img));
-                });
+                match download {
+                    Download::Image(path) => {
+                        let callback = ctx
+                            .link()
+                            .clone()
+                            .callback(|(str, img)| Msg::ImageDownloaded(str, img));
+
+                        spawn_local(async move {
+                            let img = download_image(&path).await;
+                            callback.emit((path, img));
+                        });
+                    }
+                    Download::Audio(path) => {
+                        let callback = ctx
+                            .link()
+                            .clone()
+                            .callback(|(str, audio)| Msg::AudioDownloaded(str, audio));
+
+                        spawn_local(async move {
+                            let img = download_audio(&path).await;
+                            callback.emit((path, img));
+                        });
+                    }
+                }
 
                 false
             }
@@ -227,16 +273,31 @@ impl Component for App {
                     .unwrap(),
             );
 
-            self.request_frame(ctx);
-
             for file in self.required_textures() {
-                ctx.link().send_message(Msg::DownloadRequested(file));
+                ctx.link()
+                    .send_message(Msg::DownloadRequested(Download::Image(file)));
+            }
+            for file in self.required_audio() {
+                ctx.link()
+                    .send_message(Msg::DownloadRequested(Download::Audio(file)));
             }
         }
     }
 }
 
 impl App {
+    fn start(&mut self, ctx: &Context<Self>) {
+        self.last_tick = -1.0;
+        self.game_state = GameState::Playing;
+        self.request_frame(ctx);
+        AudioManager::play(
+            self.audio_manager.get("resources/resurrection.mp3"),
+            true,
+            false,
+            0.5,
+        );
+    }
+
     fn game_over(&self, color: &str) {
         let context = self.context.as_ref().unwrap();
         context.save();
@@ -259,6 +320,16 @@ impl App {
             "resources/witch.png".to_string(),
             "resources/missile.png".to_string(),
             "resources/missile_2.png".to_string(),
+        ]
+        .into_iter()
+    }
+
+    fn required_audio(&self) -> impl Iterator<Item = String> {
+        [
+            "resources/resurrection.mp3".to_string(),
+            "resources/shoot.wav".to_string(),
+            "resources/shoot_2.wav".to_string(),
+            "resources/shoot_3.wav".to_string(),
         ]
         .into_iter()
     }
