@@ -100,11 +100,11 @@ impl Component for App {
         match msg {
             Msg::KeyDown(e) => {
                 let key = e.code();
-                if self.game_state == GameState::FinishLoading {
+                if self.game_state == GameState::FinishLoading && key.as_str() == "Enter" {
                     self.request_frame(ctx);
                     return false;
                 }
-                if self.game_state == GameState::Lost && key.as_str() == "Space" {
+                if self.game_state == GameState::Lost && key.as_str() == "Enter" {
                     self.world.reset();
                     self.start(ctx);
                     return false;
@@ -163,7 +163,7 @@ impl Component for App {
                             if self.gun_cooldown <= 0.0 {
                                 self.world.shoot(
                                     Vector::new(0.0, -500.0),
-                                    self.bullet_type.clone(),
+                                    self.bullet_type,
                                     &self.audio_manager,
                                 );
                                 self.gun_cooldown += 0.2;
@@ -180,11 +180,11 @@ impl Component for App {
                     }
                     crate::world::TickResult::Win => {
                         self.game_state = GameState::Lost;
-                        self.game_over("rgba(100,255,100,255)");
+                        self.game_over(GameOverKind::Won);
                     }
                     crate::world::TickResult::Loose => {
                         self.game_state = GameState::Lost;
-                        self.game_over("rgba(255,100,100,255)");
+                        self.game_over(GameOverKind::Lost);
                     }
                 }
                 false
@@ -214,7 +214,7 @@ impl Component for App {
                 self.game_state = GameState::Loading;
                 self.unfinished_downloads += 1;
 
-                self.game_over("rgba(100, 100, 255, 255)");
+                self.game_over(GameOverKind::Loading);
 
                 match download {
                     Download::Image(path) => {
@@ -298,13 +298,23 @@ impl App {
         );
     }
 
-    fn game_over(&self, color: &str) {
+    fn game_over(&self, kind: GameOverKind) {
         let context = self.context.as_ref().unwrap();
         context.save();
         context.set_global_composite_operation("copy").unwrap();
-        context.set_fill_style(&JsValue::from_str(color));
+        context.set_fill_style(&JsValue::from_str(kind.color()));
         context.fill_rect(0.0, 0.0, 601.0, 1000.0);
         context.restore();
+        context.set_font("48px bold");
+        context.set_text_align("center");
+        context.set_fill_style(&JsValue::from_str("white"));
+        let mut top = 500.0;
+        for text in kind.text() {
+            context
+                .fill_text(text, 300.0, top)
+                .unwrap();
+            top += 100.0;
+        }
     }
 
     fn request_frame(&mut self, ctx: &Context<Self>) {
@@ -332,5 +342,33 @@ impl App {
             "resources/shoot_3.wav".to_string(),
         ]
         .into_iter()
+    }
+}
+
+#[derive(Clone, Copy)]
+enum GameOverKind {
+    Lost,
+    Won,
+    Loading,
+}
+
+impl GameOverKind {
+    fn color(self) -> &'static str {
+        match self {
+            GameOverKind::Lost => "rgba(255, 100, 100, 255)",
+            GameOverKind::Won => "rgba(100, 255, 100, 255)",
+            GameOverKind::Loading => "rgba(100, 100, 255, 255)",
+        }
+    }
+
+    fn text(self) -> &'static [&'static str] {
+        match self {
+            GameOverKind::Lost => &["Press Enter to try again."],
+            GameOverKind::Won => &["Press Enter to start NG+."],
+            GameOverKind::Loading => &[
+                "Press Enter to start.",
+                "Use arrows, space and left ctrl.",
+            ],
+        }
     }
 }

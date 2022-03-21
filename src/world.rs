@@ -9,7 +9,7 @@ use crate::{
     textures::TextureManager,
 };
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum BulletType {
     PlayerSniper,
     PlayerHeavy,
@@ -42,6 +42,7 @@ pub struct World {
     size: Vector,
     pub time: f64,
     level: Level,
+    pub player_bullets: usize,
 }
 
 #[derive(PartialEq)]
@@ -60,6 +61,7 @@ impl World {
             bullets: vec![],
             size,
             time: 0.0,
+            player_bullets: 1,
         }
     }
 
@@ -176,11 +178,15 @@ impl World {
             BulletType::PlayerHeavy => 10.0,
             BulletType::Enemy => 5.0,
         };
-        self.bullets.push(Bullet::new(
-            typ,
-            Circle::new(self.player.coord.x, self.player.coord.y, r),
-            speed,
-        ));
+        let mut left = -(r + 1.0) * (self.player_bullets - 1) as f64 / 2.0;
+        for _ in 0..self.player_bullets {
+            self.bullets.push(Bullet::new(
+                typ,
+                Circle::new(self.player.coord.x + left, self.player.coord.y, r),
+                speed,
+            ));
+            left += r + 1.0;
+        }
         audio.play_name("resources/shoot_3.wav", false, true, 0.1);
     }
 
