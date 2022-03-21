@@ -179,6 +179,7 @@ impl Component for App {
                             .draw(self.context.as_ref().unwrap(), &self.texture_manager);
                     }
                     crate::world::TickResult::Win => {
+                        self.world.player_bullets += 1;
                         self.game_state = GameState::Lost;
                         self.game_over(GameOverKind::Won);
                     }
