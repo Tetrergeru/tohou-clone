@@ -11,4 +11,6 @@
     height: 90vh;
     aspect-ratio: 3/5;
     background-color: white;
+    /* image-rendering: crisp-edges;
+    image-rendering: pixelated; */
 }
