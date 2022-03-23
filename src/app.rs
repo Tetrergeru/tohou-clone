@@ -311,9 +311,7 @@ impl App {
         context.set_fill_style(&JsValue::from_str("white"));
         let mut top = 500.0;
         for text in kind.text() {
-            context
-                .fill_text(text, 300.0, top)
-                .unwrap();
+            context.fill_text(text, 300.0, top).unwrap();
             top += 100.0;
         }
     }
@@ -331,6 +329,8 @@ impl App {
             "resources/witch.png".to_string(),
             "resources/missile.png".to_string(),
             "resources/missile_2.png".to_string(),
+            "resources/hearth.png".to_string(),
+            "resources/green_hearth.png".to_string(),
         ]
         .into_iter()
     }
@@ -366,10 +366,7 @@ impl GameOverKind {
         match self {
             GameOverKind::Lost => &["Press Enter to try again."],
             GameOverKind::Won => &["Press Enter to start NG+."],
-            GameOverKind::Loading => &[
-                "Press Enter to start.",
-                "Use arrows, space and left ctrl.",
-            ],
+            GameOverKind::Loading => &["Press Enter to start.", "Use arrows, space and left ctrl."],
         }
     }
 }

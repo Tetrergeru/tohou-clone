@@ -193,6 +193,8 @@ impl World {
     pub fn draw(&self, context: &CanvasRenderingContext2d, texture_manager: &TextureManager) {
         let missile = texture_manager.get("resources/missile.png");
         let missile_2 = texture_manager.get("resources/missile_2.png");
+        let hearth = texture_manager.get("resources/hearth.png");
+        let green_hearth = texture_manager.get("resources/green_hearth.png");
 
         context.save();
         context.set_global_composite_operation("copy").unwrap();
@@ -200,7 +202,17 @@ impl World {
         context.fill_rect(0.0, 0.0, 700.0, 1100.0);
         context.restore();
 
-        self.draw_circle(context, &self.player, "green");
+        let player_bounds = Rect::new(
+            self.player.coord.x,
+            self.player.coord.y,
+            green_hearth.width() as f64,
+            green_hearth.height() as f64,
+        )
+        .with_width(self.player.r * 3.5);
+
+        // self.draw_circle(context, &self.player, "gray");
+        self.draw_image(context, &player_bounds, &green_hearth);
+
         for enemy in self.enemies.iter() {
             let img = texture_manager.get(&enemy.sprite);
             let center = enemy.hitbox().coord;
@@ -208,9 +220,17 @@ impl World {
             let h = img.height() as f64;
 
             let bounds = Rect::new(center.x, center.y, w, h).with_width(enemy.display_width);
+            let hearth_bounds = Rect::new(
+                center.x,
+                center.y,
+                hearth.width() as f64,
+                hearth.height() as f64,
+            )
+            .with_width(enemy.hitbox().r * 3.0);
 
             self.draw_image(context, &bounds, img);
-            self.draw_circle(context, enemy.hitbox(), "red");
+            // self.draw_circle(context, enemy.hitbox(), "purple");
+            self.draw_image(context, &hearth_bounds, hearth);
         }
         for bullet in self.bullets.iter() {
             match bullet.typ {
