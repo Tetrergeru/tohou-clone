@@ -5,7 +5,7 @@ use crate::{
     audio::AudioManager,
     enemies::Enemy,
     geometry::{Circle, Rect, Vector},
-    level::{l1, Level},
+    level::Level,
     textures::TextureManager,
 };
 
@@ -53,10 +53,10 @@ pub enum TickResult {
 }
 
 impl World {
-    pub fn new(size: Vector) -> Self {
+    pub fn new(size: Vector, level: Level) -> Self {
         Self {
             player: Circle::new(0.0, size.y / 6.0 * 2.0, 10.0),
-            level: l1(),
+            level,
             enemies: vec![],
             bullets: vec![],
             size,
@@ -69,11 +69,11 @@ impl World {
         self.player.coord += delta;
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, next_level: Level) {
         self.bullets.drain(..);
         self.enemies.drain(..);
-        self.level.reset();
         self.player.coord = Vector::new(0.0, self.size.y / 6.0 * 2.0);
+        self.level = next_level;
     }
 
     pub fn tick(&mut self, delta: f64, audio: &AudioManager) -> TickResult {

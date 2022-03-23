@@ -171,9 +171,40 @@ impl HardcodedEmitter {
         let a = 0.2;
         for _ in 0..bullet_number {
             let x = a * (16.0 * t.sin().powi(3));
-            let y = -a * (13.0 * t.cos() - 5.0 * (2.0 * t).cos() - 2.0 * (3.0 * t).cos() - (4.0 * t).cos());
+            let y = -a
+                * (13.0 * t.cos()
+                    - 5.0 * (2.0 * t).cos()
+                    - 2.0 * (3.0 * t).cos()
+                    - (4.0 * t).cos());
             let point = Vector::new(x, y);
-            bullets.push((point, point * bullet_speed));//
+            bullets.push((point, point * bullet_speed)); //
+
+            t += step;
+        }
+        Self::new(bullet_cooldown, bullets)
+    }
+
+    pub fn forward_hearth(
+        bullet_cooldown: f64,
+        radius: f64,
+        bullet_speed: Vector,
+        bullet_number: usize,
+    ) -> Self {
+        let mut bullets = vec![];
+
+        let step = std::f64::consts::PI * 2.0 / (bullet_number - 1) as f64;
+
+        let mut t = 0.0_f64;
+        let a = radius;
+        for _ in 0..bullet_number {
+            let x = a * (16.0 * t.sin().powi(3));
+            let y = -a
+                * (13.0 * t.cos()
+                    - 5.0 * (2.0 * t).cos()
+                    - 2.0 * (3.0 * t).cos()
+                    - (4.0 * t).cos());
+            let point = Vector::new(x, y);
+            bullets.push((point, bullet_speed));
 
             t += step;
         }

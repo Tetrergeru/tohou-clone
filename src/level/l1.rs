@@ -6,49 +6,14 @@ use crate::{
         Enemy, Phase,
     },
     geometry::{Circle, Vector},
-    world::{Bullet, TickResult},
 };
 
-pub struct Level {
-    scene: usize,
-    pub scenes: Vec<Scene>,
-}
-
-impl Level {
-    pub fn tick(&mut self, enemies: &mut Vec<Enemy>, bullets: &mut Vec<Bullet>) -> TickResult {
-        if enemies.is_empty() && self.scene == self.scenes.len() {
-            return TickResult::Win;
-        }
-        if enemies.is_empty() {
-            log::debug!("Level 1, Scene {}", self.scene);
-            bullets.drain(..);
-            self.scenes[self.scene].spawn(enemies);
-            self.scene += 1;
-        }
-        TickResult::None
-    }
-
-    pub fn reset(&mut self) {
-        self.scene = 0;
-    }
-}
+use super::{Level, Scene};
 
 pub fn l1() -> Level {
     Level {
         scene: 0,
         scenes: vec![l1s0(), l1s1(), l1s2(), l1s3()],
-    }
-}
-
-pub struct Scene {
-    enemies: Vec<Enemy>,
-}
-
-impl Scene {
-    fn spawn(&self, to: &mut Vec<Enemy>) {
-        for enemy in self.enemies.iter() {
-            to.push(enemy.clone());
-        }
     }
 }
 
