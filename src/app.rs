@@ -13,6 +13,7 @@ use crate::{
     audio::AudioManager,
     download::{download_audio, download_image, Download},
     geometry::Vector,
+    level::{l1, l2, Level},
     textures::TextureManager,
     world::{BulletType, World},
 };
@@ -45,6 +46,9 @@ pub struct App {
     audio_manager: AudioManager,
     unfinished_downloads: usize,
 
+    current_level: usize,
+    levels: Vec<Level>,
+
     _keydown_listener: EventListener,
     _keyup_listener: EventListener,
     _frame: Option<AnimationFrame>,
@@ -55,6 +59,7 @@ enum GameState {
     Loading,
     FinishLoading,
     Playing,
+    LevelFinished,
     Lost,
 }
 
@@ -76,10 +81,13 @@ impl Component for App {
             onkeyup.emit(e);
         });
 
+        let levels = vec![l1(), l2()];
+        let current_level = 0;
+
         Self {
             canvas_ref: NodeRef::default(),
             context: None,
-            world: World::new(Vector::new(600.0, 1000.0)),
+            world: World::new(Vector::new(600.0, 1000.0), levels[current_level].clone()),
             down_list: HashSet::new(),
             last_tick: -1.0,
             game_state: GameState::Loading,
@@ -89,6 +97,9 @@ impl Component for App {
             texture_manager: TextureManager::new(),
             audio_manager: AudioManager::new(),
             unfinished_downloads: 0,
+
+            current_level,
+            levels,
 
             _keydown_listener: keydown_listener,
             _keyup_listener: keyup_listener,
@@ -104,8 +115,11 @@ impl Component for App {
                     self.request_frame(ctx);
                     return false;
                 }
-                if self.game_state == GameState::Lost && key.as_str() == "Enter" {
-                    self.world.reset();
+                if (self.game_state == GameState::Lost
+                    || self.game_state == GameState::LevelFinished)
+                    && key.as_str() == "Enter"
+                {
+                    self.world.reset(self.levels[self.current_level].clone());
                     self.start(ctx);
                     return false;
                 }
@@ -179,9 +193,15 @@ impl Component for App {
                             .draw(self.context.as_ref().unwrap(), &self.texture_manager);
                     }
                     crate::world::TickResult::Win => {
+                        self.current_level += 1;
                         self.world.player_bullets += 1;
-                        self.game_state = GameState::Lost;
-                        self.game_over(GameOverKind::Won);
+                        if self.current_level != self.levels.len() {
+                            self.game_state = GameState::LevelFinished;
+                            self.game_over(GameOverKind::LevelFinished);
+                        } else {
+                            self.game_state = GameState::Lost;
+                            self.game_over(GameOverKind::Won);
+                        }
                     }
                     crate::world::TickResult::Loose => {
                         self.game_state = GameState::Lost;
@@ -310,10 +330,8 @@ impl App {
         context.set_text_align("center");
         context.set_fill_style(&JsValue::from_str("white"));
         let mut top = 500.0;
-        for text in kind.text() {
-            context
-                .fill_text(text, 300.0, top)
-                .unwrap();
+        for text in kind.text(self) {
+            context.fill_text(&text, 300.0, top).unwrap();
             top += 100.0;
         }
     }
@@ -332,6 +350,8 @@ impl App {
             "resources/missile.png".to_string(),
             "resources/missile_2.png".to_string(),
             "resources/Forest.png".to_string(),
+            "resources/hearth.png".to_string(),
+            "resources/green_hearth.png".to_string(),
         ]
         .into_iter()
     }
@@ -351,6 +371,7 @@ impl App {
 enum GameOverKind {
     Lost,
     Won,
+    LevelFinished,
     Loading,
 }
 
@@ -358,18 +379,22 @@ impl GameOverKind {
     fn color(self) -> &'static str {
         match self {
             GameOverKind::Lost => "rgba(255, 100, 100, 255)",
-            GameOverKind::Won => "rgba(100, 255, 100, 255)",
+            GameOverKind::Won | GameOverKind::LevelFinished => "rgba(100, 255, 100, 255)",
             GameOverKind::Loading => "rgba(100, 100, 255, 255)",
         }
     }
 
-    fn text(self) -> &'static [&'static str] {
+    fn text(self, app: &App) -> Vec<String> {
         match self {
-            GameOverKind::Lost => &["Press Enter to try again."],
-            GameOverKind::Won => &["Press Enter to start NG+."],
-            GameOverKind::Loading => &[
-                "Press Enter to start.",
-                "Use arrows, space and left ctrl.",
+            GameOverKind::Lost => vec!["Press Enter to try again.".into()],
+            GameOverKind::Won => vec!["You have won!".into()],
+            GameOverKind::Loading => vec![
+                "Press Enter to start.".into(),
+                "Use arrows, space and left ctrl.".into(),
+            ],
+            GameOverKind::LevelFinished => vec![
+                format!("Level {} finished!", app.current_level),
+                format!("Press Enter to start next"),
             ],
         }
     }

@@ -14,7 +14,7 @@ pub struct Enemy {
     pub sprite: String,
     pub display_width: f64,
     hitbox: Circle,
-    health: f64,
+    pub health: f64,
     phases: Vec<Phase>,
     phase: usize,
     time: f64,
@@ -58,7 +58,13 @@ impl Phase {
 }
 
 impl Enemy {
-    pub fn new(hitbox: Circle, health: f64, phases: Vec<Phase>, sprite: String, display_width: f64) -> Self {
+    pub fn new(
+        hitbox: Circle,
+        health: f64,
+        phases: Vec<Phase>,
+        sprite: String,
+        display_width: f64,
+    ) -> Self {
         Self {
             hitbox,
             health,
