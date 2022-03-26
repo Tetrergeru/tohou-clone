@@ -331,6 +331,7 @@ impl App {
             "resources/witch.png".to_string(),
             "resources/missile.png".to_string(),
             "resources/missile_2.png".to_string(),
+            "resources/Forest.png".to_string(),
         ]
         .into_iter()
     }

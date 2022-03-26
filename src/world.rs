@@ -200,6 +200,8 @@ impl World {
         context.fill_rect(0.0, 0.0, 700.0, 1100.0);
         context.restore();
 
+        self.draw_back(context, texture_manager);
+
         self.draw_circle(context, &self.player, "green");
         for enemy in self.enemies.iter() {
             let img = texture_manager.get(&enemy.sprite);
@@ -222,6 +224,14 @@ impl World {
                 }
                 BulletType::PlayerHeavy => self.draw_circle(context, &bullet.hitbox, "cyan"),
             }
+        }
+    }
+
+    fn draw_back(&self, context: &CanvasRenderingContext2d, texture_manager: &TextureManager) {
+        let img = texture_manager.get("resources/Forest.png");
+        
+        for i in -2..3 {
+            self.draw_image(context, &Rect::new(0.0, 250.0 * i as f64, 600.0, 350.0), img)
         }
     }
 
