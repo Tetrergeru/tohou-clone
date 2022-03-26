@@ -15,6 +15,7 @@ pub struct Enemy {
     pub display_width: f64,
     hitbox: Circle,
     pub health: f64,
+    health_per_radius: f64,
     phases: Vec<Phase>,
     phase: usize,
     time: f64,
@@ -66,6 +67,7 @@ impl Enemy {
         display_width: f64,
     ) -> Self {
         Self {
+            health_per_radius: (hitbox.r * 0.7) / health,
             hitbox,
             health,
             phases,
@@ -98,7 +100,7 @@ impl Enemy {
     }
 
     pub fn hit(&mut self, damage: f64) {
-        self.hitbox.r -= damage * 0.5;
+        self.hitbox.r -= damage * self.health_per_radius;
         self.health -= damage;
     }
 

@@ -148,10 +148,14 @@ impl Component for App {
                     GameState::Playing => self.request_frame(ctx),
                     GameState::FinishLoading => self.start(ctx),
                     GameState::Lost => {
-                        AudioManager::stop(&self.audio_manager.get("resources/resurrection.mp3"));
+                        AudioManager::stop(&self.audio_manager.get(&self.world.level.sound));
                         return false;
                     }
-                    _ => return false,
+                    GameState::LevelFinished => {
+                        AudioManager::stop(&self.audio_manager.get(&self.world.level.sound));
+                        return false;
+                    }
+                    GameState::Loading => return false,
                 }
 
                 if self.last_tick < 0.0 {
@@ -312,7 +316,7 @@ impl App {
         self.game_state = GameState::Playing;
         self.request_frame(ctx);
         AudioManager::play(
-            self.audio_manager.get("resources/resurrection.mp3"),
+            self.audio_manager.get(&self.world.level.sound),
             true,
             false,
             0.5,
@@ -350,6 +354,7 @@ impl App {
             "resources/missile.png".to_string(),
             "resources/missile_2.png".to_string(),
             "resources/Forest.png".to_string(),
+            "resources/Floor.png".to_string(),
             "resources/hearth.png".to_string(),
             "resources/green_hearth.png".to_string(),
         ]
@@ -359,6 +364,7 @@ impl App {
     fn required_audio(&self) -> impl Iterator<Item = String> {
         [
             "resources/resurrection.mp3".to_string(),
+            "resources/cypis.mp3".to_string(),
             "resources/shoot.wav".to_string(),
             "resources/shoot_2.wav".to_string(),
             "resources/shoot_3.wav".to_string(),
@@ -394,7 +400,7 @@ impl GameOverKind {
             ],
             GameOverKind::LevelFinished => vec![
                 format!("Level {} finished!", app.current_level),
-                format!("Press Enter to start next"),
+                "Press Enter to start next".to_string(),
             ],
         }
     }

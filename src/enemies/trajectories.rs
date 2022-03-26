@@ -5,6 +5,23 @@ use crate::{
 use super::Trajectory;
 
 #[derive(Clone)]
+pub struct CombinatorTrajectory<First, Second>(First, Second);
+
+impl<First, Second> CombinatorTrajectory<First, Second> {
+    pub fn new(first: First, second: Second) -> Self {
+        Self(first, second)
+    }
+}
+
+impl<First: Trajectory + Clone, Second: Trajectory + Clone> Trajectory
+    for CombinatorTrajectory<First, Second>
+{
+    fn location(&self, time: f64) -> Vector {
+        self.0.location(time) + self.1.location(time)
+    }
+}
+
+#[derive(Clone)]
 pub struct CircleTrajectory {
     pub trajectory: Circle,
     pub timer_offset: f64,

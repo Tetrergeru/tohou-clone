@@ -6,16 +6,16 @@ use crate::{
 use super::BulletEmmiter;
 
 #[derive(Clone)]
-pub struct CombinatorEmmiter<First, Second>(First, Second);
+pub struct CombinatorEmitter<First, Second>(First, Second);
 
-impl<First, Second> CombinatorEmmiter<First, Second> {
+impl<First, Second> CombinatorEmitter<First, Second> {
     pub fn new(first: First, second: Second) -> Self {
         Self(first, second)
     }
 }
 
 impl<First: BulletEmmiter + Clone, Second: BulletEmmiter + Clone> BulletEmmiter
-    for CombinatorEmmiter<First, Second>
+    for CombinatorEmitter<First, Second>
 {
     fn tick(
         &mut self,

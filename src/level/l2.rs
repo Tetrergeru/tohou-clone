@@ -1,8 +1,7 @@
 use crate::{
     enemies::{
-        bullet_emmiters::{CircleEmitter, CombinatorEmmiter, ForwardEmitter, HardcodedEmitter},
-        premade::enemy_1,
-        trajectories::{CircleTrajectory, FromToTrajectory, StayTrajectory},
+        bullet_emmiters::{CircleEmitter, ForwardEmitter, HardcodedEmitter, CombinatorEmitter},
+        trajectories::{CircleTrajectory, CombinatorTrajectory, FromToTrajectory, StayTrajectory},
         Enemy, Phase,
     },
     geometry::{Circle, Vector},
@@ -13,7 +12,9 @@ use super::{Level, Scene};
 pub fn l2() -> Level {
     Level {
         scene: 0,
-        scenes: vec![l2s1()],
+        scenes: vec![l2s1(), l2s3()],
+        background: "resources/Floor.png".to_string(),
+        sound: "resources/cypis.mp3".to_string(),
     }
 }
 
@@ -47,8 +48,8 @@ fn l2s1() -> Scene {
 pub fn l2ls1_enemy(start: Vector, offset: f64, rotation_speed: f64, points: Vec<Vector>) -> Enemy {
     let mut stages = vec![
         Phase::new(
-            5.0,
-            Box::new(FromToTrajectory::new(start, points[0], 5.0)),
+            3.9,
+            Box::new(FromToTrajectory::new(start, points[0], 3.9)),
             Box::new(HardcodedEmitter::forward_hearth(
                 1.0,
                 5.0,
@@ -107,4 +108,47 @@ pub fn l2ls1_enemy(start: Vector, offset: f64, rotation_speed: f64, points: Vec<
         "resources/ghost.png".to_string(),
         100.0,
     )
+}
+
+fn l2s3() -> Scene {
+    let start = Vector::new(0.0, -1000.0);
+    Scene {
+        enemies: vec![Enemy::new(
+            Circle::new(0.0, 0.0, 30.0),
+            100.0,
+            vec![
+                Phase::new(
+                    3.0,
+                    Box::new(FromToTrajectory::new(start, Vector::new(0.0, -450.0), 3.0)),
+                    Box::new(HardcodedEmitter::forward_hearth(
+                        1.0,
+                        150.0,
+                        Vector::new(0.0, 200.0),
+                        80,
+                    )),
+                ),
+                Phase::new(
+                    f64::MAX,
+                    Box::new(CombinatorTrajectory::new(
+                        CircleTrajectory::new(
+                            Circle::new(0.0, -200.0, 150.0),
+                            std::f64::consts::PI,
+                            0.5,
+                        ),
+                        CircleTrajectory::new(
+                            Circle::new(0.0, 0.0, 100.0),
+                            std::f64::consts::PI,
+                            -1.0,
+                        ),
+                    )),
+                    Box::new(CombinatorEmitter::new(
+                        CircleEmitter::new(0.3, 7, 200.0),
+                        CircleEmitter::new(0.2, 7, 100.0),
+                    )),
+                ),
+            ],
+            "resources/ghost.png".to_string(),
+            100.0,
+        )],
+    }
 }

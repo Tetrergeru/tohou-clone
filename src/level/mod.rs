@@ -13,6 +13,8 @@ use crate::{
 pub struct Level {
     scene: usize,
     pub scenes: Vec<Scene>,
+    pub background: String,
+    pub sound: String,
 }
 
 impl Level {

@@ -41,7 +41,7 @@ pub struct World {
     bullets: Vec<Bullet>,
     size: Vector,
     pub time: f64,
-    level: Level,
+    pub level: Level,
     pub player_bullets: usize,
 }
 
@@ -213,7 +213,7 @@ impl World {
         .with_width(self.player.r * 3.5);
 
         // self.draw_circle(context, &self.player, "gray");
-        self.draw_image(context, &player_bounds, &green_hearth);
+        self.draw_image(context, &player_bounds, green_hearth);
 
         for enemy in self.enemies.iter() {
             let img = texture_manager.get(&enemy.sprite);
@@ -248,10 +248,11 @@ impl World {
     }
 
     fn draw_back(&self, context: &CanvasRenderingContext2d, texture_manager: &TextureManager) {
-        let img = texture_manager.get("resources/Forest.png");
+        let img = texture_manager.get(&self.level.background);
         
-        for i in -2..3 {
-            self.draw_image(context, &Rect::new(0.0, 250.0 * i as f64, 600.0, 350.0), img)
+        let t = (self.time * 50.0) % 250.0;
+        for i in -3..4 {
+            self.draw_image(context, &Rect::new(0.0, 249.0 * i as f64 + t, 600.0, 350.0), img)
         }
     }
 

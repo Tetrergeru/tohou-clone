@@ -1,6 +1,6 @@
 use crate::{
     enemies::{
-        bullet_emmiters::{CircleEmitter, CombinatorEmmiter, ForwardEmitter, HardcodedEmitter},
+        bullet_emmiters::{CircleEmitter, ForwardEmitter, HardcodedEmitter, CombinatorEmitter},
         premade::enemy_1,
         trajectories::{CircleTrajectory, FromToTrajectory, StayTrajectory},
         Enemy, Phase,
@@ -14,6 +14,8 @@ pub fn l1() -> Level {
     Level {
         scene: 0,
         scenes: vec![l1s0(), l1s1(), l1s2(), l1s3()],
+        background: "resources/Floor.png".to_string(),
+        sound: "resources/resurrection.mp3".to_string(),
     }
 }
 
@@ -161,7 +163,7 @@ fn l1s3() -> Scene {
                         std::f64::consts::PI / 2.0,
                         1.0,
                     )),
-                    Box::new(CombinatorEmmiter::new(
+                    Box::new(CombinatorEmitter::new(
                         HardcodedEmitter::wall(0.5, 200.0, 300.0, 15),
                         CircleEmitter::new(0.3, 7, 200.0),
                     )),
@@ -182,7 +184,7 @@ fn l1s3() -> Scene {
                         std::f64::consts::PI / 2.0,
                         1.0,
                     )),
-                    Box::new(CombinatorEmmiter::new(
+                    Box::new(CombinatorEmitter::new(
                         HardcodedEmitter::wall(0.5, 200.0, 300.0, 15),
                         CircleEmitter::new(0.3, 7, 200.0),
                     )),
